@@ -1,0 +1,44 @@
+--[===[
+This code is supposed to make a GUI shrink or grow depending on whether your mouse enters or leaves the GUI.
+Cool for some buttons or an image.
+Don't mess with the numbers unless it says so, or else the GUI will stray off from it's original position
+
+Copy the code into a script and place it as a child of the GUI you want to.
+
+
+(Note for people who are new to ROBLOX Lua:
+Remember that the PlayerGui is just local to the client, so placing your mouse over the GUI won't replicate for everyone. No need to worry about the GUI changing size for everyone if one person puts their mouse over it.)
+]===]
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+local originalXSize = script.Parent.Size.X.Scale
+local originalYSize = script.Parent.Size.Y.Scale
+
+local originalXPos = script.Parent.Position.X.Scale
+local originalYPos = script.Parent.Position.Y.Scale
+
+local newXSize = script.Parent.Size.X.Scale * 0.2 -- change this number right here if you want it to grow bigger or smaller
+local newYSize = script.Parent.Size.Y.Scale * 0.2 -- same here
+local storeX1 = script.Parent.Size.X.Scale + newXSize
+local storeY1 = script.Parent.Size.Y.Scale + newYSize
+
+
+local xPos = script.Parent.Position.X.Scale
+local yPos = script.Parent.Position.Y.Scale
+
+local changeXPosBy = newXSize/2
+local changeYPosBy = newYSize/2
+
+-- Grow in size
+script.Parent.MouseEnter:connect(function()
+	script.Parent:TweenSizeAndPosition(UDim2.new(storeX1, 0, storeY1, 0), UDim2.new(xPos - changeXPosBy, 0, yPos - changeYPosBy, 0), "Out", "Quad", 0.3, true) -- Change the second last number here to make it change size faster (lower number = faster change)
+end)
+
+
+
+-- Shrink
+
+script.Parent.MouseLeave:connect(function()
+	script.Parent:TweenSizeAndPosition(UDim2.new(originalXSize, 0, originalYSize, 0), UDim2.new(originalXPos, 0, originalXPos, 0), "Out", 	"Quad", 0.3, true)
+end)
+
+
