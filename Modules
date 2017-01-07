@@ -1,0 +1,258 @@
+local _M = {}
+
+--[===[
+	Index:
+		--------------------------------
+		- GUIs
+		
+			- growGui - Takes parameter of a gui object and makes it 30% bigger when a mouse enters, then when the mouse leaves it shrinks back
+			
+			- Error - Takes parameter of gui, and if you don't want someone to do something with a gui, just make it error :^)
+			
+			- MoveGuis - Takes the parameter of parent, and moves every GUI inside it 0.18 scale up. (Meant for the chat gui)
+			
+		--------------------------------
+		- Access player data (All of these take the player argument)
+		
+			- findData -- returns a boolean true or false if found player data
+			
+			- getLevel - Pretty self explanatory
+			
+			- getClass - Same as above
+			
+			- getAgility - Same as above
+			
+		--------------------------------
+		- Get things inside the player
+			
+			- getWepName - Returns the name of the weapon that the player currently has equipped (doesn't have to be equipped on the hand, just has to be on the character)
+			
+			- getHitbox
+			
+			- getWepType
+			
+			- getWepDmg
+			
+			
+--]===]
+local hs = game:GetService("HttpService")
+function _M.growGui(gui)
+	local grow = coroutine.wrap(function()
+		local originalXSize = gui.Size.X.Scale
+		local originalYSize = gui.Size.Y.Scale
+		
+		local originalXPos = gui.Position.X.Scale
+		local originalYPos = gui.Position.Y.Scale
+		
+		local newXSize = gui.Size.X.Scale * 0.2
+		local newYSize =gui.Size.Y.Scale * 0.2
+		local storeX1 = gui.Size.X.Scale + newXSize
+		local storeY1 = gui.Size.Y.Scale + newYSize
+		
+		
+		local xPos = gui.Position.X.Scale
+		local yPos = gui.Position.Y.Scale
+		
+		local changeXPosBy = newXSize/2
+		local changeYPosBy = newYSize/2
+		
+		-- Grow in size
+		gui.MouseEnter:connect(function()
+			gui:TweenSizeAndPosition(UDim2.new(storeX1, 0, storeY1, 0), UDim2.new(xPos - changeXPosBy, 0, yPos - changeYPosBy, 0), "Out", "Quad", 0.3, true)
+		end)
+		
+		
+		
+		-- Shrink
+		
+		gui.MouseLeave:connect(function()
+			gui:TweenSizeAndPosition(UDim2.new(originalXSize, 0, originalYSize, 0), UDim2.new(originalXPos, 0, originalYPos, 0), "Out", 		"Quad", 0.3, true)
+		end)
+		
+
+	end)
+	grow()
+end
+
+function _M.Error(gui)
+	local bsp = gui.BorderSizePixel
+	
+	gui.BorderSizePixel = 2
+	gui.BorderColor3 = Color3.new(1, 0, 0)
+	
+	spawn(function()
+		repeat
+			gui.BorderColor3.r = gui.BorderColor3.r - 2.5
+		until gui.BorderColor3.r <= 0
+	end)
+end
+
+
+
+function _M.MoveGuis(parent)
+	for _, gui in ipairs(parent:GetChildren()) do -- for every gui in that frame,
+		gui.Name = tostring((tonumber(gui.Name) + 1)) -- add 1 to the gui position marking
+		local newXPos = gui.Position.X.Scale
+		local newYPos = gui.Position.Y.Scale - 0.18
+		gui:TweenPosition(UDim2.new(newXPos, 0, newYPos, 0), "Out", "Quad", 0.2, true) -- move the chats up
+		if gui.Name == "6" then -- if its off the chat gui, destroy it
+			gui:Destroy()
+		end
+	end
+end
+
+
+
+------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+function _M.getLevel(player) -- Returns the value of the level
+	local tab = _M.findData(player)
+	local check = tab.check
+	local folder = tab.folder
+	if check and folder then
+		return folder:FindFirstChild("Level").Value
+	end
+end
+
+
+function _M.getClass(player)
+	local tab = _M.findData(player)
+	local check = tab.check
+	local folder = tab.folder
+	if check and folder then
+		return folder:FindFirstChild("Class").Value
+	end
+end
+
+function _M.getAgility(player)
+	local tab = _M.findData(player)
+	local check = tab.check
+	local folder = tab.folder
+	if check and folder then
+		return folder:FindFirstChild("Agility").Value
+	end
+end
+
+function _M.getArmor(player)
+	local tab = _M.findData(player)
+	local check = tab.check
+	local folder = tab.folder
+	if check and folder then
+		return folder:FindFirstChild("Armor").Value
+	end
+end
+
+function _M.getHealth(player)
+	local tab = _M.findData(player)
+	local check = tab.check
+	local folder = tab.folder
+	if check and folder then
+		print (folder:FindFirstChild("Health").Value)
+		return folder:FindFirstChild("Health").Value
+	end
+end
+
+function _M.getMaxHealth(player)
+	local tab = _M.findData(player)
+	local check = tab.check
+	local folder = tab.folder
+	if check and folder then
+		return folder:FindFirstChild("Health").MaxValue
+	end
+end
+
+function _M.getStamina(player)
+	local tab = _M.findData(player)
+	local check = tab.check
+	local folder = tab.folder
+	if check and folder then
+		return folder:FindFirstChild("Stamina").Value
+	end
+end
+
+
+function _M.findData(player) -- returns a table of "check" to see if we could find the data, and the folder if we did find the data
+	if player then
+		if game.ReplicatedStorage.PlayerData:FindFirstChild(player.UserId .. "_data") then
+			return {
+				check = true;
+				folder = game.ReplicatedStorage.PlayerData:FindFirstChild(player.UserId .. "_data")
+			}
+		else
+			return {
+				check = false;
+				folder = nil
+			}
+		end
+	else
+		return {
+				check = false;
+				folder = nil
+			}
+	end
+end
+
+function _M.saveData(player, list, datastore) -- Pretty self explanatory
+	local id = player.UserId
+	print (id)
+	local theirData = hs:JSONEncode(list[player.UserId])
+	if list[id] ~= nil then
+		datastore:SetAsync(player.UserId .. "_data", theirData)
+	end
+end
+
+function _M.updateData(player, list, datastore)
+	local id = player.UserId
+	local theirData = hs:JSONEncode(list[player.UserId])
+	if list[id] ~= nil then
+		print ("Data acquired . . . ")
+	end
+end
+
+function _M.getCurrentHair(player, list)
+	if player then
+		
+	end
+end
+
+
+------------------------------------------------------------------------------------
+
+
+function _M.getWepName(player) -- Returns whatever weapon is in the character (currently equipped)
+	if player then
+		if player.Character then
+			for _, thing in ipairs(player.Character:GetChildren()) do
+				if thing.Name == "Weapon" then
+					return thing:FindFirstChild("Name").Value
+				end
+			end
+			return nil
+		end
+	end
+end
+
+function _M.getHitbox(wep)
+	return wep:FindFirstChild("Hitbox")
+end
+
+function _M.getWepType(wep)
+	if wep:IsA("Model") then
+		if wep:FindFirstChild("WepType") then
+			return wep:FindFirstChild("WepType").Value
+		end
+		return "1 Handed Sword"
+	end
+	return "1 Handed Sword"
+end
+
+function _M.getWepDmg(wep)
+	if wep:FindFirstChild("Damage") then
+		return wep:FindFirstChild("Damage").Value
+	end
+	return 0
+end
+
+return _M
