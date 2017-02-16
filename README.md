@@ -1,2 +1,2 @@
 # beaned
-A GUI gets bigger when your mouse hovers over it, and shrinks when your mouse hovers off of it.
+Code for the game I'm making
