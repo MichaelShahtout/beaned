@@ -1,44 +1,100 @@
 --[===[
-This code is supposed to make a GUI shrink or grow depending on whether your mouse enters or leaves the GUI.
-Cool for some buttons or an image.
-Don't mess with the numbers unless it says so, or else the GUI will stray off from it's original position
-
-Copy the code into a script and place it as a child of the GUI you want to.
-
-
-(Note for people who are new to ROBLOX Lua:
-Remember that the PlayerGui is just local to the client, so placing your mouse over the GUI won't replicate for everyone. No need to worry about the GUI changing size for everyone if one person puts their mouse over it.)
+	paramaters: <<GUI>> object
+	
+	To implement:
+	
+		Let's say you have a GUI (maybe a frame?) in a ScreenGui which is parented to PlayerGui, and you have a reference to it by the following code
+		
+		
+		
+		
+		
+								-- REMEMBER, THIS SHOULD GO IN A LOCAL SCRIPT
+								local player = game.Players.LocalPlayer
+								local frame = player:WaitForChild("PlayerGui").ScreenGui.Frame
+								
+								
+								
+								growGui(frame)
+								-- THIS IS ALL THE CODE YOU NEED TO MAKE IT WORK
+								All the events and such are INSIDE the function so you just need this function to run it
+	
 ]===]
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-local originalXSize = script.Parent.Size.X.Scale
-local originalYSize = script.Parent.Size.Y.Scale
 
-local originalXPos = script.Parent.Position.X.Scale
-local originalYPos = script.Parent.Position.Y.Scale
+function _M.growGui(gui)
+	local grow = coroutine.wrap(function()
+		--[===[
+			This is all just some math that I did
+			
+			TL;DR
+			When you scale a GUI, it doesn't automatically reposition so it's centered to it's original position
+			This math keeps it "centered" (relative to its mathematical center, not top left corner position)
+			
+			
+			
+			
+			
+			GUI positions are determined by the top left corner. When you make a GUI bigger on the x, it grows to the right side
+			
+			This means that the top left corner is still in its original position
+			
+			Why is this important? 
+				- When the top left corner is still in its original position but the right side scales out, the GUI isn't centered to its original center position anymore, so it looks weird and could mess up your UI.
+			
+		--]===]
+		
+		
+		local originalXSize = gui.Size.X.Scale 
+		local originalYSize = gui.Size.Y.Scale
+		
+		local originalXPos = gui.Position.X.Scale
+		local originalYPos = gui.Position.Y.Scale
+		
+		local newXSize = gui.Size.X.Scale * 0.2
+		local newYSize =gui.Size.Y.Scale * 0.2
+		local storeX1 = gui.Size.X.Scale + newXSize
+		local storeY1 = gui.Size.Y.Scale + newYSize
+		
+		
+		local xPos = gui.Position.X.Scale
+		local yPos = gui.Position.Y.Scale
+		
+		local changeXPosBy = newXSize/2
+		local changeYPosBy = newYSize/2
+		
+		-- Grow in size
+		gui.MouseEnter:connect(function() -- when the mouse enters the gui
+			gui:TweenSizeAndPosition(UDim2.new(storeX1, 0, storeY1, 0), UDim2.new(xPos - changeXPosBy, 0, yPos - changeYPosBy, 0), "Out", "Quad", 0.3, true) -- w
+			local tl = Instance.new("TextLabel", gui)
+			tl.Name = "tl"
+			tl.TextYAlignment = "Top"
+			tl.Size = UDim2.new(1, 0, 0.3, 0)
+			tl.Position = UDim2.new(0, 0, -0.1, 0)
+			tl.BackgroundColor3 = Color3.new(0, 0, 0)
+			tl.BackgroundTransparency = 0.4
+			tl.TextScaled = true
+			tl.Text = gui.Name
+			tl.TextColor3 = Color3.new(1, 1, 1)
+			tl.BorderColor3 = Color3.new(1,1,1)
+			tl.Font = "Antique"
+			
+		end)
+		
+		
+		
+		-- Shrink
+		
+		gui.MouseLeave:connect(function()
+			gui:TweenSizeAndPosition(UDim2.new(originalXSize, 0, originalYSize, 0), UDim2.new(originalXPos, 0, originalYPos, 0), "Out",	"Quad", 0.3, true) -- shrinks it back to its original size 
+			for _, thing in ipairs(gui:GetChildren()) do
+				if thing.Name == "tl" then -- this is that textlabel that i created that shows the name of the gui
+					-- just fyi, name your GUIs appropriately (it helps with hierarchy too)
+					thing:Destroy()
+				end
+			end
+		end)
+		
 
-local newXSize = script.Parent.Size.X.Scale * 0.2 -- change this number right here if you want it to grow bigger or smaller
-local newYSize = script.Parent.Size.Y.Scale * 0.2 -- same here
-local storeX1 = script.Parent.Size.X.Scale + newXSize
-local storeY1 = script.Parent.Size.Y.Scale + newYSize
-
-
-local xPos = script.Parent.Position.X.Scale
-local yPos = script.Parent.Position.Y.Scale
-
-local changeXPosBy = newXSize/2
-local changeYPosBy = newYSize/2
-
--- Grow in size
-script.Parent.MouseEnter:connect(function()
-	script.Parent:TweenSizeAndPosition(UDim2.new(storeX1, 0, storeY1, 0), UDim2.new(xPos - changeXPosBy, 0, yPos - changeYPosBy, 0), "Out", "Quad", 0.3, true) -- Change the second last number here to make it change size faster (lower number = faster change)
-end)
-
-
-
--- Shrink
-
-script.Parent.MouseLeave:connect(function()
-	script.Parent:TweenSizeAndPosition(UDim2.new(originalXSize, 0, originalYSize, 0), UDim2.new(originalXPos, 0, originalXPos, 0), "Out", 	"Quad", 0.3, true)
-end)
-
-
+	end)
+	grow() -- idk i like coroutines
+end
