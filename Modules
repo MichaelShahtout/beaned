@@ -1,15 +1,36 @@
+-- [===[
+     Written by Michael S. (ROBLOX: RogueMage)
+
+
+     NOTICE: Not all the methods are documented, will add more in future.
+     
+]===]
+
 local _M = {}
+
+local Service = setmetatable({}, {
+    __index = function(self, Index)
+        local Got, Ser = pcall(game.GetService, game, Index);
+        
+        rawset(self, Index, Got and Ser);
+        
+        return Got and Ser;
+    end;
+});
 
 --[===[
 	Index:
+	Section 1) Methods
 		--------------------------------
-		- GUIs
+		- Guis
 		
 			- growGui - Takes parameter of a gui object and makes it 30% bigger when a mouse enters, then when the mouse leaves it shrinks back
 			
 			- Error - Takes parameter of gui, and if you don't want someone to do something with a gui, just make it error :^)
 			
 			- MoveGuis - Takes the parameter of parent, and moves every GUI inside it 0.18 scale up. (Meant for the chat gui)
+			
+			- typeText
 			
 		--------------------------------
 		- Access player data (All of these take the player argument)
@@ -22,6 +43,16 @@ local _M = {}
 			
 			- getAgility - Same as above
 			
+			- getStamina
+			
+			- getHealth
+			
+			- getMaxHealth
+			
+			- getArmor
+			
+			- getMana
+			
 		--------------------------------
 		- Get things inside the player
 			
@@ -33,12 +64,87 @@ local _M = {}
 			
 			- getWepDmg
 			
+			- getCharChildren
+			
+			- loadCharacter
+			
+			
+		--------------------------------
+		- Parts stuff
+			
+			- disappearPart
+			
+			- checkIfDummy
+			
+			- getCorrespondingWall - This function gets the part in workspace which corresponds with a specific dummy
+			
+			- getDummyHealth
+			
+			
+	Section 2) Variables
+	
+		- list of classes
+		
+		- list of class agility
+		
+			
 			
 --]===]
 local hs = game:GetService("HttpService")
+local ChatService = game:GetService("Chat")
+
+
+
+
+
+--[===[
+        Function name: growGui
+	paramaters: <<GUI>> object
+	
+	To implement:
+	
+		Let's say you have a GUI (maybe a frame?) in a ScreenGui which is parented to PlayerGui, and you have a reference to it by the following code
+		
+		
+		
+		
+		
+								-- REMEMBER, THIS SHOULD GO IN A LOCAL SCRIPT
+								local player = game.Players.LocalPlayer
+								local frame = player:WaitForChild("PlayerGui").ScreenGui.Frame
+								
+								
+								
+								growGui(frame)
+								-- THIS IS ALL THE CODE YOU NEED TO MAKE IT WORK
+								All the events and such are INSIDE the function so you just need this function to run it
+	
+]===]
+
 function _M.growGui(gui)
 	local grow = coroutine.wrap(function()
-		local originalXSize = gui.Size.X.Scale
+		--[===[
+			This is all just some math that I did
+			
+			TL;DR
+			When you scale a GUI, it doesn't automatically reposition so it's centered to it's original position
+			This math keeps it "centered" (relative to its mathematical center, not top left corner position)
+			
+			
+			
+			
+			
+			GUI positions are determined by the top left corner. When you make a GUI bigger on the x, it grows to the right side
+			
+			This means that the top left corner is still in its original position
+			
+			Why is this important? 
+				- When the top left corner is still in its original position but the right side scales out, the GUI isn't centered to its original center position anymore, so it looks weird and could mess up your UI.
+			
+		--]===]
+		
+		
+		local originalXSize = gui.Size.X.Scale 
 		local originalYSize = gui.Size.Y.Scale
 		
 		local originalXPos = gui.Position.X.Scale
@@ -57,8 +163,21 @@ function _M.growGui(gui)
 		local changeYPosBy = newYSize/2
 		
 		-- Grow in size
-		gui.MouseEnter:connect(function()
-			gui:TweenSizeAndPosition(UDim2.new(storeX1, 0, storeY1, 0), UDim2.new(xPos - changeXPosBy, 0, yPos - changeYPosBy, 0), "Out", "Quad", 0.3, true)
+		gui.MouseEnter:connect(function() -- when the mouse enters the gui
+			gui:TweenSizeAndPosition(UDim2.new(storeX1, 0, storeY1, 0), UDim2.new(xPos - changeXPosBy, 0, yPos - changeYPosBy, 0), "Out", "Quad", 0.3, true) -- w
+			local tl = Instance.new("TextLabel", gui)
+			tl.Name = "tl"
+			tl.TextYAlignment = "Top"
+			tl.Size = UDim2.new(1, 0, 0.3, 0)
+			tl.Position = UDim2.new(0, 0, -0.1, 0)
+			tl.BackgroundColor3 = Color3.new(0, 0, 0)
+			tl.BackgroundTransparency = 0.4
+			tl.TextScaled = true
+			tl.Text = gui.Name
+			tl.TextColor3 = Color3.new(1, 1, 1)
+			tl.BorderColor3 = Color3.new(1,1,1)
+			tl.Font = "Antique"
+			
 		end)
 		
 		
@@ -66,12 +185,18 @@ function _M.growGui(gui)
 		-- Shrink
 		
 		gui.MouseLeave:connect(function()
-			gui:TweenSizeAndPosition(UDim2.new(originalXSize, 0, originalYSize, 0), UDim2.new(originalXPos, 0, originalYPos, 0), "Out", 		"Quad", 0.3, true)
+			gui:TweenSizeAndPosition(UDim2.new(originalXSize, 0, originalYSize, 0), UDim2.new(originalXPos, 0, originalYPos, 0), "Out",	"Quad", 0.3, true) -- shrinks it back to its original size 
+			for _, thing in ipairs(gui:GetChildren()) do
+				if thing.Name == "tl" then -- this is that textlabel that i created that shows the name of the gui
+					-- just fyi, name your GUIs appropriately (it helps with hierarchy too)
+					thing:Destroy()
+				end
+			end
 		end)
 		
 
 	end)
-	grow()
+	grow() -- idk i like coroutines
 end
 
 function _M.Error(gui)
@@ -102,6 +227,76 @@ function _M.MoveGuis(parent)
 end
 
 
+function _M.typeText(text, gui)
+	gui.Text = ""
+	local len = string.len(text)
+	local boi = ""
+	for i = 1, len do
+		boi = boi .. string.sub(text, i, i)
+		gui.Text = boi
+		wait(0.05)
+	end
+end
+
+
+function _M.getPlayerChatArea(player)
+	return player:WaitForChild("PlayerGui"):WaitForChild("Scrn"):WaitForChild("ChatFrame"):WaitForChild("ChatArea")
+end
+
+
+function _M.setPlayerGui(player, gui, plyrLeft) -- always going to be used in the "ScrollingFrame" gui
+	for _, childGui in ipairs(gui:GetChildren()) do
+		childGui:Destroy()
+	end
+	local numPlayers = game.Players.NumPlayers
+	local ySize = 0.77 -- canvas y size
+	local gSize = 0.13-- used for the y-size of the player frames inside the ScrollingFrame
+	if numPlayers > 7 then
+		numPlayers = numPlayers - 7
+		ySize = ySize + (0.1*(numPlayers))
+		gSize = gSize - (0.02 * (numPlayers))
+	else
+		numPlayers = 0
+	end
+	gui.CanvasSize = UDim2.new(0, 0, ySize, 0)
+	for i = 1, game.Players.NumPlayers do
+		local yPos = (i-1) * (0.145)
+		if game.Players.NumPlayers > 7 then
+			yPos = (i-1) * (0.145 - (0.02*numPlayers))
+		end
+		local plyr = game.Players:GetChildren()[i] -- gets the player object
+		local frame = Instance.new("Frame", gui) -- creating the frame to outline the player's gui in the Players gui
+		frame.Size = UDim2.new(0.9, 0, gSize, 0)
+		frame.Name = plyr.Name
+		frame.Position = UDim2.new(0.05, 0, yPos, 0)
+		frame.BackgroundColor3 = Color3.new(0,0,0)
+		frame.BackgroundTransparency = 0.6
+		frame.BorderSizePixel = 0
+		
+		local im = Instance.new("ImageLabel", frame)
+		im.Size = UDim2.new(0.15, 0, 1, 0)
+		im.ImageTransparency = 0.7
+		im.BackgroundTransparency = 1
+		im.Image = "rbxassetid://102354638"
+		
+		local name = Instance.new("TextLabel", frame)
+		name.Size = UDim2.new(0.57, 0, 1, 0)
+		name.Position = UDim2.new(0.2, 0, 0, 0)
+		name.BackgroundTransparency = 1
+		name.TextColor3 = Color3.new(1,1,1)
+		name.TextStrokeTransparency = 0
+		name.TextXAlignment = "Left"
+		name.Text = plyr.Name
+		name.TextScaled = true
+		name.Font = "Fantasy"
+		name.TextWrapped = true
+		if player == plyr then
+			name.TextColor3 = Color3.new(70/255, 212/255, 177/255)
+		end
+	end
+end
+
+
 
 ------------------------------------------------------------------------------------------------------------------------------------
 
@@ -114,6 +309,7 @@ function _M.getLevel(player) -- Returns the value of the level
 	if check and folder then
 		return folder:FindFirstChild("Level").Value
 	end
+	return 0
 end
 
 
@@ -149,7 +345,6 @@ function _M.getHealth(player)
 	local check = tab.check
 	local folder = tab.folder
 	if check and folder then
-		print (folder:FindFirstChild("Health").Value)
 		return folder:FindFirstChild("Health").Value
 	end
 end
@@ -172,10 +367,38 @@ function _M.getStamina(player)
 	end
 end
 
+function _M.getMana(player)
+	local tab = _M.findData(player)
+	local check = tab.check
+	local folder = tab.folder
+	if check and folder then
+		return folder:FindFirstChild("Mana").Value
+	end
+end
+
+function _M.getSelectedChat(player)
+	local tab = _M.findData(player)
+	local check = tab.check
+	local folder = tab.folder
+	if check and folder then
+		return folder:FindFirstChild("selectedChat").Value
+	end
+end
+
+function _M.increaseHealth(player)
+	local tab = _M.findData(player)
+	local check = tab.check
+	local folder = tab.folder
+	if check and folder then
+		local maxhealth = _M.getMaxHealth(player)
+		folder:FindFirstChild("Health").Value = folder:FindFirstChild("Health").Value + 0.05*(_M.getMaxHealth(player))
+	end
+end
+
 
 function _M.findData(player) -- returns a table of "check" to see if we could find the data, and the folder if we did find the data
 	if player then
-		if game.ReplicatedStorage.PlayerData:FindFirstChild(player.UserId .. "_data") then
+		if game.ReplicatedStorage.PlayerData:FindFirstChild(player.UserId .. "_data", 5) then
 			return {
 				check = true;
 				folder = game.ReplicatedStorage.PlayerData:FindFirstChild(player.UserId .. "_data")
@@ -196,26 +419,21 @@ end
 
 function _M.saveData(player, list, datastore) -- Pretty self explanatory
 	local id = player.UserId
-	print (id)
 	local theirData = hs:JSONEncode(list[player.UserId])
 	if list[id] ~= nil then
+		print ("Saved user" .. player.UserId .. "'s data")
 		datastore:SetAsync(player.UserId .. "_data", theirData)
 	end
 end
 
 function _M.updateData(player, list, datastore)
 	local id = player.UserId
-	local theirData = hs:JSONEncode(list[player.UserId])
+	local theirData = hs:JSONEncode(list[id])
 	if list[id] ~= nil then
 		print ("Data acquired . . . ")
 	end
 end
 
-function _M.getCurrentHair(player, list)
-	if player then
-		
-	end
-end
 
 
 ------------------------------------------------------------------------------------
@@ -255,4 +473,236 @@ function _M.getWepDmg(wep)
 	return 0
 end
 
+function _M.getCharChildren(player)
+	if player.Character then
+		return player.Character:GetChildren()
+	end
+end
+
+function _M.loadCharacter(player)
+	player:LoadCharacter()
+end
+
+
+
+
+function _M.disappearThing(thing)
+	if thing ~= nil then
+		spawn(function()
+			if thing:IsA("Part") or thing:IsA("MeshPart") or thing:IsA("UnionOperation") then
+					local success, fail = pcall(function()
+						repeat
+							thing.Transparency = thing.Transparency + 0.02
+							wait(0.05)
+						until thing.Transparency >= 1
+					end)
+					
+					if success then
+						thing:Destroy()
+					end
+			elseif thing:IsA("Model") then
+				local children = thing:GetChildren()
+				if string.sub(thing.Name, 1, 4) == "Wall" then
+					if thing:FindFirstChild("Base") then
+						thing.Base:Remove()
+						for i = 1, #children do
+							children[i].Anchored = false
+						end
+						if thing:FindFirstChild("Push") then
+							local p = thing.Push
+							p.Anchored = false
+							p.Parent = workspace
+							game.Debris:AddItem(p, 2)
+						end
+					end
+				end
+				local success, fail = pcall(function()
+					repeat
+						for i = 1, #children do
+							children[i].Transparency = children[i].Transparency + 0.02
+						end
+						wait(0.02)
+					until children[1].Transparency >= 1
+				end)
+				
+				if success then
+					thing:Destroy()
+				end
+			end
+		end)
+	end
+end
+
+function _M.checkIfDummy(thing)
+	if thing:FindFirstChild("Dummy") then
+		return true
+	end
+	return false
+end
+
+function _M.getCorrespondingWall(dummy)
+	if _M.checkIfDummy(dummy) then
+		return "Wall" .. string.sub(dummy.Name, 6)
+	end
+end
+
+function _M.getDummyHealth(dummy)
+	if _M.checkIfDummy(dummy) then
+		return dummy:FindFirstChild("CHealth").Value
+	end
+end
+
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Section 2
+
+_M.classes = {
+	"Warrior";
+	"Mage";
+	"Thief";
+	"Paladin";
+	"Ranger";
+}
+
+_M.classSprints = { -- Make it proportional to normal walkspeed
+	["Warrior"] = 0.2; -- 20% faster sprint
+	["Mage"] = 0.15; -- 15% faster sprint
+	["Thief"] = 0.3; -- 30% faster sprint
+	["Paladin"] = 0.075; -- 7.5% faster sprint
+	["Ranger"] = 0.2;
+}
+
+_M.fakeStats = {
+	Level = 1;
+	Class = math.random(1, #_M.classes);
+	Armor = 0;
+	xp = 0;
+	Appearance = {
+		Hair = 1; -- Correspond with the hairs array
+		HairColor = 1; -- Correspond with BrickColor code in the hairsColors array
+		FacialHair = 0; -- like Hair
+		SkinTone = 2; 
+		Face = 1;
+		Shirt = 1;
+		Pants = 1;
+		ChestArmor = 0;
+		LegArmor = 0;
+		Helmet = 0;
+	}
+}
+
+_M.appearances = {
+	hairs = {
+		"SpikedHair";
+		"BraidedHair";
+		"DreamyHair";
+		"Dweeb";
+		"FemaleHair";
+		"Fro";
+		"Fro_stache";
+		"FrontSpike";
+		"GirlAnimeHair";
+		"HarajakuHair";
+		"JEREMY";
+		"KeanuReeves";
+		"SpikedHair2";
+		"SpikedHair3";
+		"SpikedHair4";
+		"SpikyHair";
+		"bunshun";
+		"dreadlocked"
+	};
+	
+	haircfs = {
+		BraidedHair = CFrame.new(0, -0.1, -0.05);
+		DreamyHair = CFrame.new(-0.03, 0.32, 0);
+		Dweeb = CFrame.new(0, 0.3, 0);
+		FemaleHair = CFrame.new(0, -0.3, 0);
+		Fro = CFrame.new(0, 0.65, 0);
+		Fro_stache = CFrame.new(0, 0.65, 0.23);
+		FrontSpike = CFrame.new(0, 0.5, 0);
+		GirlAnimeHair = CFrame.new(0.03, -0.05, 0.1);
+		HarajakuHair = CFrame.new(-0.03, 0.32, 0);
+		JEREMY = CFrame.new(0, 0.35, 0);
+		KeanuReeves = CFrame.new(0, 0.4, 0);
+		LongCombedHair = CFrame.new(0, -0.3, 0);
+		SpikedHair = CFrame.new(0, 0.5, 0);
+		SpikedHair2 = CFrame.new(0.07, -0.1, 0.08);
+		SpikedHair3 = CFrame.new(0, 0.7, 0);
+		SpikedHair4 = CFrame.new(0, 0.65, 0.1);
+		SpikyHair = CFrame.new(0, 0.45, 0);
+		bunshun = CFrame.new(0, 0.43, 0.37);
+		dreadlocked = CFrame.new(0, -0.1, 0.2);
+	};
+	
+	hairColors = {
+		26;
+		226;
+		217;
+		348;
+		313;
+		306;
+		327;
+		102;
+	};
+	
+	skinTones = {
+		125;
+		1030;
+		38;
+		365;
+	};
+	
+	faces = {
+		53769373;
+		76864258;
+		13079565;
+		105831829;
+		299220936;
+		63760920;
+		44797116;
+		144763383;
+		38141452;
+		227600967;
+	};
+	
+	shirts = {
+		203869469;
+	};
+	
+	pants = {
+		198170209	;
+	};
+}
+
+_M.wepCFs = {
+	["Blacksteel"] = {
+		BackCF = CFrame.new(0, 0.7, 0) * CFrame.Angles(0, math.rad(90), 0) * CFrame.Angles(0, math.rad(90), 0) * CFrame.Angles(0, math.rad(90), 0) * CFrame.Angles(0, 0, 0) * CFrame.Angles(math.rad(90), 0, 0) * CFrame.Angles(0, 0, math.rad(45));
+		HoldCF = CFrame.Angles(0, math.rad(90), 0)
+	};
+	
+	["Diamond Sculptor"] = {
+		BackCF = CFrame.Angles(0, math.rad(90), 0) * CFrame.Angles(math.rad(90), 0, 0) * CFrame.Angles(0, 0, math.rad(-40)) * CFrame.new(-1.5, -1.5, -0.75);
+		HoldCF = CFrame.Angles(0, 0, 0);
+	};
+	
+	["Skewer of the King"] = {
+		BackCF = CFrame.Angles(math.rad(90), 0, math.rad(140)) * CFrame.new(-1.7, -1.4, -0.7);
+		HoldCF = CFrame.Angles(0, math.rad(90), 0);
+	}
+	
+	
+}
+
+_M.images = {
+	280516525;
+	154764038;
+	2939239;
+}
+
 return _M
+
+
